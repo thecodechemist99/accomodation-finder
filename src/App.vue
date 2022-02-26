@@ -1,23 +1,25 @@
 <template>
   <Header @addNotice="addNotice" />
-  <AddForm v-if="adding" @saveNotice="saveNotice" />
+  <AddForm v-if="addingNotice" @saveNotice="saveNotice" />
   <div v-else>
-    <Filter />
-    <NoticeComp v-for="(notice, i) in notices" :key="i" :notice="notices[i]" />
+    <FilterSection @addFilter="addFilter" @deleteFilter="deleteFilter" :filters="filters" />
+    <NewFilter v-if="addingFilter" @saveFilter="saveFilter" :notices="notices" />
+    <NoticeComp v-for="(notice, i) in showNotices" :key="i" :notice="showNotices[i]" />
   </div>
 </template>
 
 <script lang="ts">
 import {
+  computed,
   defineComponent,
   ref,
   Ref,
-  toRaw,
 } from 'vue';
 import Header from './components/Header.vue';
 import AddForm from './components/AddForm.vue';
 import NoticeComp from './components/Notice.vue';
-import Filter from './components/Filter.vue';
+import FilterSection from './components/FilterSection.vue';
+import NewFilter from './components/NewFilter.vue';
 
 export interface Notice {
   country: string,
@@ -30,33 +32,67 @@ export interface Notice {
   infos: string,
 }
 
+export interface Filter {
+  field: 'country' | 'location' | 'spaces' | 'start' | 'end' | 'name' | 'contact' | 'infos',
+  value: string,
+}
+
 export default defineComponent({
   name: 'App',
   components: {
     Header,
     AddForm,
     NoticeComp,
-    Filter,
+    FilterSection,
+    NewFilter,
   },
   setup() {
-    const adding = ref(false);
+    const addingNotice = ref(false);
+    const addingFilter = ref(false);
+
     const notices: Ref<Notice[]> = ref([]);
+    const filters: Ref<Filter[]> = ref([]);
+
+    const showNotices = computed(() => notices.value.filter(
+      (notice: Notice) => filters.value.map(
+        (filter: Filter) => notice[filter.field].toString() === filter.value,
+      ).every((entry) => entry),
+    ));
 
     function addNotice() {
-      adding.value = true;
+      addingNotice.value = true;
+    }
+
+    function addFilter() {
+      addingFilter.value = true;
     }
 
     function saveNotice(notice: Notice) {
-      adding.value = false;
+      addingNotice.value = false;
       notices.value.push(notice);
-      console.log(notices.value);
+    }
+
+    function saveFilter(filter: Filter) {
+      addingFilter.value = false;
+      filters.value.push(filter);
+      console.log(filters.value);
+    }
+
+    function deleteFilter(index: number) {
+      filters.value.splice(index, 1);
     }
 
     return {
-      adding,
+      addingNotice,
+      addingFilter,
       notices,
+      showNotices,
+      filters,
       addNotice,
+      addFilter,
       saveNotice,
+      saveFilter,
+      deleteFilter,
     };
   },
 });
